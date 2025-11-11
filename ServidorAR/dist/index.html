@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Realidade Aumentada</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            /* Fundo animado com gradiente */
+            background: linear-gradient(-45deg, #0a0a2a, #1a0a3a, #0a2a2a, #2a0a1a);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 40px 60px;
+            border-radius: 15px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+        }
+
+        .nav-button {
+            display: block;
+            width: 300px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            text-decoration: none;
+            color: #00ffff;
+            background-color: transparent;
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-button:hover {
+            background-color: #00ffff;
+            color: #0a0a2a;
+            box-shadow: 0 0 20px #00ffff;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema AR</h1>
+        <a href="displayAR.html" class="nav-button">
+            Display AR
+        </a>
+        <a href="controle.html" class="nav-button">
+            Controlador Virtual
+        </a>
+    </div>
+</body>
+</html>

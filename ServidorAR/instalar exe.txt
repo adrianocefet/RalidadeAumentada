@@ -1,0 +1,6 @@
+pip install pyinstaller
+pyinstaller --onefile server.py
+pyinstaller --onefile --noconsole server.py
+
+
+pyinstaller --onefile --icon=meu_icone.ico server.py

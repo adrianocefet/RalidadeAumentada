@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Controlador Virtual</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #0a0a2a;
+            color: white;
+            overflow: hidden;
+        }
+
+        .status {
+            font-size: 1rem;
+            color: #aaa;
+            position: absolute;
+            top: 20px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+
+        #connectButton {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            padding: 20px 40px;
+            background: #008f11;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px #008f11;
+        }
+        
+        #connectButton:hover {
+            background: #00ff1e;
+            box-shadow: 0 0 25px #00ff1e;
+        }
+
+        #actionButton {
+            font-family: 'Orbitron', sans-serif;
+            width: 200px;
+            height: 200px;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            color: white;
+            background: #900;
+            border: 5px solid #f00;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 20px #f00;
+            display: none; /* Escondido até conectar */
+        }
+        
+        #actionButton:active {
+            background: #f00;
+            transform: scale(0.95);
+            box-shadow: 0 0 40px #f00;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="status" class="status">Desconectado</div>
+
+    <button id="connectButton">Conectar e Calibrar</button>
+    
+    <button id="actionButton">Ação</button>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const connectButton = document.getElementById('connectButton');
+        const actionButton = document.getElementById('actionButton');
+
+        // Altere para o IP da máquina que está rodando o server.js
+        // Se estiver testando no mesmo PC: 'ws://localhost:8080'
+        // Se estiver em outra máquina na rede: 'ws://192.168.1.XX:8080'
+        const WEBSOCKET_URL = 'ws://localhost:8080'; 
+        let ws;
+
+        // Função para solicitar permissão para os sensores de orientação
+        function requestDeviceOrientation() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                // iOS 13+
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            startSendingData();
+                        } else {
+                            statusEl.textContent = 'Permissão negada';
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Outros dispositivos (Android, etc.)
+                startSendingData();
+            }
+        }
+
+        // Conecta ao WebSocket e inicia os eventos
+        function connect() {
+            try {
+                ws = new WebSocket(WEBSOCKET_URL);
+
+                ws.onopen = () => {
+                    console.log('Conectado ao WebSocket');
+                    statusEl.textContent = 'Conectado';
+                    connectButton.style.display = 'none';
+                    actionButton.style.display = 'block';
+                    // Solicita permissão e inicia os sensores
+                    requestDeviceOrientation();
+                };
+
+                ws.onclose = () => {
+                    console.log('Desconectado do WebSocket');
+                    statusEl.textContent = 'Desconectado';
+                    connectButton.style.display = 'block';
+                    actionButton.style.display = 'none';
+                    window.removeEventListener('deviceorientation', handleOrientation);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('Erro no WebSocket:', error);
+                    statusEl.textContent = 'Erro de conexão';
+                };
+
+            } catch (error) {
+                console.error("Falha ao conectar:", error);
+                statusEl.textContent = 'Falha ao conectar';
+            }
+        }
+
+        // Inicia o listener de orientação
+        function startSendingData() {
+            statusEl.textContent = 'Calibrado! Movimente o celular.';
+            window.addEventListener('deviceorientation', handleOrientation);
+        }
+
+        // Envia os dados de rotação via WebSocket
+        function handleOrientation(event) {
+            const { alpha, beta, gamma } = event;
+
+            const data = {
+                type: 'rotate',
+                payload: {
+                    alpha: alpha, // Rotação Y (Bússola)
+                    beta: beta,   // Rotação X (Frente/Trás)
+                    gamma: gamma  // Rotação Z (Lado/Lado)
+                }
+            };
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+            }
+        }
+
+        // Envia o sinal de ação via WebSocket
+        function handleAction() {
+            const data = {
+                type: 'action',
+                payload: {}
+            };
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(data));
+                console.log('Sinal de AÇÃO enviado!');
+            }
+        }
+
+        // Botões
+        connectButton.addEventListener('click', connect);
+        actionButton.addEventListener('click', handleAction);
+
+    </script>
+</body>
+</html>

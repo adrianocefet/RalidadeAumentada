@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Display AR</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <!-- AR.js -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <!-- Componente para animações GLTF -->
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+</head>
+<body style="margin : 0px; overflow: hidden;">
+
+    <!-- 
+      A-Frame Scene com AR.js
+      'artoolkit' é um tipo de marcador, 'pattern' usa um arquivo .patt
+      'preset: hiro' usa um marcador padrão (Hiro)
+    -->
+    <a-scene embedded arjs>
+
+        <a-assets>
+            <!-- 
+              LOCAL PARA CARREGAR O MODELO 3D
+              Troque o 'src' abaixo pelo caminho para o seu arquivo 'aviao_low_poly.glb'
+              Estou usando um astronauta como marcador de posição.
+            -->
+            <a-asset-item 
+                id="airplane-model" 
+                src="https://cdn.glade.io/storage/models/Astronaut/Astronaut.glb"
+            ></a-asset-item>
+        </a-assets>
+
+        <!-- Marcador AR. Usando o preset 'hiro' -->
+        <a-marker preset="hiro">
+            
+            <!-- 
+              Entidade do Modelo 3D
+              id="model-entity" -> Usado pelo JS para encontrar o modelo
+              gltf-model="#airplane-model" -> Carrega o modelo dos assets
+              scale="0.1 0.1 0.1" -> Ajuste a escala conforme necessário
+              rotation="-90 0 0" -> Ajuste inicial. O AR.js pode precisar 
+                                     que o modelo seja rotacionado 90 graus no eixo X.
+              animation-mixer -> Necessário para tocar animações do GLB
+            -->
+            <a-entity
+                id="model-entity"
+                gltf-model="#airplane-model"
+                scale="0.1 0.1 0.1"
+                rotation="-90 0 0" 
+                animation-mixer="clip: idle; loop: repeat" 
+            ></a-entity>
+
+        </a-marker>
+
+        <!-- Câmera padrão do AR.js -->
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <script>
+        // Altere para o IP da máquina que está rodando o server.js
+        const WEBSOCKET_URL = 'ws://localhost:8080';
+        let ws;
+
+        function connectToWebSocket() {
+            try {
+                ws = new WebSocket(WEBSOCKET_URL);
+
+                ws.onopen = () => {
+                    console.log('Display AR conectado ao WebSocket');
+                };
+
+                ws.onmessage = (event) => {
+                    // Recebe a mensagem (que foi retransmitida pelo server.js)
+                    const data = JSON.parse(event.data);
+                    const model = document.querySelector('#model-entity');
+
+                    if (!model) return;
+
+                    if (data.type === 'rotate') {
+                        // --- COMO OS DADOS SÃO APLICADOS ---
+                        // Recebemos os dados alpha, beta, gamma do controle
+                        const { alpha, beta, gamma } = data.payload;
+
+                        // Mapeamos os ângulos do dispositivo para a rotação do A-Frame
+                        // A-Frame usa X, Y, Z (pitch, yaw, roll)
+                        // DeviceOrientation usa alpha, beta, gamma
+                        
+                        // Rotação Padrão (AR.js pode precisar de -90 no X)
+                        const initialX = -90; 
+                        
+                        // Mapeamento:
+                        // beta (X do celular) -> controla o pitch (X do A-Frame)
+                        // alpha (Y do celular) -> controla o yaw (Y do A-Frame)
+                        // gamma (Z do celular) -> controla o roll (Z do A-Frame)
+                        // O 'alpha' (bússola) pode ser instável; 'gamma' ou 'beta' são melhores.
+                        // Vamos usar beta (X) e gamma (Z) para controlar X e Z.
+                        
+                        // Ajuste beta para o eixo X (pitch)
+                        // Ajuste gamma para o eixo Z (roll)
+                        // Estamos ignorando o 'alpha' (bússola) para estabilidade
+                        
+                        // Importante: a rotação do AR.js é relativa ao marcador.
+                        // A rotação do dispositivo é absoluta.
+                        // Para um controle "direto", você pode precisar de um objeto
+                        // de calibração ou subtrair a rotação inicial.
+                        
+                        // Mapeamento simples para demonstração:
+                        let rotX = initialX + beta; // Pitch
+                        let rotY = alpha;           // Yaw (Bússola)
+                        let rotZ = gamma;           // Roll
+
+                        // Aplicando a rotação
+                        model.setAttribute('rotation', `${rotX} ${rotY} ${rotZ}`);
+                        
+                    } else if (data.type === 'action') {
+                        // --- COMO A AÇÃO É APLICADA ---
+                        console.log('Ação recebida!');
+                        
+                        // Toca uma animação do modelo GLB.
+                        // 'clip: *' toca a primeira animação disponível.
+                        // Se seu avião tem uma animação chamada "shoot", use 'clip: shoot'
+                        // 'loop: once' toca a animação uma vez.
+                        model.setAttribute('animation-mixer', {
+                            clip: '*', 
+                            loop: 'once',
+                            clampWhenFinished: true // Para na última pose
+                        });
+                        
+                        // Opcional: voltar para a animação "idle" depois
+                        setTimeout(() => {
+                             model.setAttribute('animation-mixer', {
+                                clip: 'idle', 
+                                loop: 'repeat'
+                            });
+                        }, 2000); // Duração da animação (ex: 2 segundos)
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('Display AR desconectado. Tentando reconectar...');
+                    // Tenta reconectar após 2 segundos
+                    setTimeout(connectToWebSocket, 2000);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('Erro no WebSocket do Display:', error);
+                    ws.close();
+                };
+
+            } catch (error) {
+                console.error("Falha ao conectar Display:", error);
+                setTimeout(connectToWebSocket, 2000);
+            }
+        }
+
+        // Inicia a conexão
+        connectToWebSocket();
+
+    </script>
+</body>
+</html>
