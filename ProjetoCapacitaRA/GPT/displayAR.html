@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Display AR</title>
+  <!-- A-Frame e AR.js. Versões estáveis e leves para AR com marcador "hiro". -->
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    .hud {
+      position: fixed; inset: 12px auto auto 12px; z-index: 10; color: #e6eefb;
+      background: rgba(0,0,0,.35); backdrop-filter: blur(6px); border-radius: 10px;
+      padding: 8px 10px; font: 500 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    .hud b { color: #00e5ff; }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div>WS: <b id="wsState">conectando…</b></div>
+    <div>Rotação alvo: <span id="dbgRot">0,0,0</span></div>
+  </div>
+
+  <!-- Cena AR com marcador "hiro". Use uma impressão do marcador para ancorar o modelo. -->
+  <a-scene
+    vr-mode-ui="enabled: false"
+    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; logarithmicDepthBuffer: true"
+    embedded
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false">
+
+    <!-- Onde alterar o modelo 3D: substitua o caminho abaixo por outro .glb/.gltf local -->
+    <a-assets>
+      <a-asset-item id="planeModel" src="./aviao_low_poly.glb" crossorigin="anonymous"></a-asset-item>
+    </a-assets>
+
+    <!-- Luzes para destacar o modelo -->
+    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #666666; intensity: 1.0" position="0 2 0"></a-entity>
+    <a-entity light="type: directional; intensity: 0.6" position="1 2 0"></a-entity>
+
+    <!-- Marcador padrão do AR.js. O modelo é filho do marcador, mantendo o tracking. -->
+    <a-marker preset="hiro">
+      <a-entity id="plane"
+                gltf-model="#planeModel"
+                position="0 0 0"
+                rotation="0 0 0"
+                scale="0.6 0.6 0.6"
+                animation-mixer="clip: *; loop: once; timeScale: 0; clampWhenFinished: true">
+      </a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // ====================================================
+    // Recebimento de dados e aplicação no modelo 3D
+    // ====================================================
+    // Como o display recebe e aplica as rotações:
+    // - Conectamos ao mesmo WebSocket do controle
+    // - Mensagens do tipo { type: 'orientation', alpha, beta, gamma } atualizam o alvo de rotação
+    // - Suavizamos a transição e aplicamos no atributo rotation do <a-entity id="plane">
+
+    const WS_URL = 'ws://localhost:8080';
+    const wsStateEl = document.getElementById('wsState');
+    const dbgRot = document.getElementById('dbgRot');
+    const planeEl = document.getElementById('plane');
+
+    let targetRot = { x: 0, y: 0, z: 0 };
+    let haveTarget = false;
+
+    function connectWS() {
+      const ws = new WebSocket(WS_URL);
+      ws.onopen = () => wsStateEl.textContent = 'conectado';
+      ws.onclose = () => { wsStateEl.textContent = 'desconectado'; setTimeout(connectWS, 1000); };
+      ws.onerror = () => wsStateEl.textContent = 'erro';
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'orientation') {
+            // Mapeia alpha->y, beta->x, gamma->z para o sistema de rotação do A-Frame (graus)
+            targetRot = { x: data.beta || 0, y: data.alpha || 0, z: data.gamma || 0 };
+            haveTarget = true;
+            dbgRot.textContent = `${targetRot.x.toFixed(0)}, ${targetRot.y.toFixed(0)}, ${targetRot.z.toFixed(0)}`;
+          } else if (data.type === 'action') {
+            triggerModelAction();
+          }
+        } catch (e) { /* ignora pacotes não-JSON */ }
+      };
+    }
+    connectWS();
+
+    // Suavizador: aproxima rotação atual do alvo a cada frame
+    function smoothToTarget() {
+      if (haveTarget && planeEl && planeEl.object3D) {
+        const cur = planeEl.getAttribute('rotation');
+        const k = 0.25; // fator de suavização
+        const nx = cur.x + (targetRot.x - cur.x) * k;
+        const ny = cur.y + (targetRot.y - cur.y) * k;
+        const nz = cur.z + (targetRot.z - cur.z) * k;
+        planeEl.setAttribute('rotation', { x: nx, y: ny, z: nz });
+      }
+      requestAnimationFrame(smoothToTarget);
+    }
+    requestAnimationFrame(smoothToTarget);
+
+    // Disparo de animação predefinida no .glb (se houver clips)
+    function triggerModelAction() {
+      // Tenta reinicializar animation-mixer tocando todos os clips uma vez
+      try {
+        planeEl.removeAttribute('animation-mixer');
+        // Reaplica no próximo frame para garantir rebind
+        setTimeout(() => {
+          planeEl.setAttribute('animation-mixer', 'clip: *; loop: once; timeScale: 1; clampWhenFinished: true');
+        }, 0);
+      } catch (e) {}
+
+      // Fallback visual caso o modelo não tenha animação interna
+      // Um pequeno pulso de escala para indicar a ação
+      planeEl.setAttribute('animation__pulse', 'property: scale; to: 0.7 0.7 0.7; dir: alternate; dur: 180; loop: 2; easing: easeInOutSine');
+      setTimeout(() => planeEl.removeAttribute('animation__pulse'), 600);
+    }
+  </script>
+</body>
+</html>

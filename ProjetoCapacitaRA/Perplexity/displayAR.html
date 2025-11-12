@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Display AR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar.min.js"></script>
+  <style>
+    body {margin:0; background:#000;}
+    h2 {position:absolute; z-index:10;top:10px;left:0;right:0;text-align:center;color:#64f4ac;font-family:'Orbitron',sans-serif;}
+  </style>
+</head>
+<body>
+  <h2>Display AR</h2>
+
+  <!-- Cena AR.js + A-Frame -->
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    renderer="colorManagement: true;"
+  >
+    <a-assets>
+      <!-- Altere o modelo abaixo para usar outro arquivo .glb se desejar -->
+      <a-asset-item id="aviao-modelo" src="aviao_low_poly.glb"></a-asset-item>
+    </a-assets>
+
+    <!-- Marcador padrão -->
+    <a-marker preset="hiro">
+      <a-entity
+        id="aviao"
+        gltf-model="#aviao-modelo"
+        scale="1.5 1.5 1.5"
+        animation__acao="property: rotation; to: 0 180 0; dur: 600; dir: alternate; loop: false; startEvents: açãoAvião;"
+      ></a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // WebSocket para receber comandos do controle.html
+    const ws = new WebSocket('ws://localhost:8080');
+    ws.onopen = () => {console.log("WebSocket conectado displayAR.html");};
+
+    ws.onmessage = (msg) => {
+      const dados = JSON.parse(msg.data);
+      const aviao = document.getElementById('aviao');
+      // Se for rotação: atualiza a rotação do modelo em tempo real
+      if (dados.tipo === 'rotacao' && aviao) {
+        // Apply rotation from control (DeviceOrientation: alpha=z, beta=x, gamma=y)
+        aviao.setAttribute('rotation',
+          `${dados.beta?.toFixed(2) || 0} ${dados.gamma?.toFixed(2) || 0} ${dados.alpha?.toFixed(2) || 0}`);
+      }
+      // Se for ação: dispara animação predefinida
+      if (dados.tipo === 'acao' && dados.acao === 'animar' && aviao) {
+        // Aciona evento 'açãoAvião' na entidade do avião para executar a animação A-Frame
+        aviao.emit('açãoAvião');
+      }
+    };
+
+    // Comentários:
+    // - O modelo 3D é carregado da pasta via <a-asset-item> pelo id 'aviao-modelo'. Para trocar o modelo, basta substituir o .glb e atualizar o src.
+    // - A rotação do avião é atualizada diretamente com os dados recebidos do controle.html via WebSocket.
+    // - O sinal de ação dispara uma animação rápida na rotação (você pode criar outras em animation__acao).
+    // - O display está pronto para AR via câmera (AR.js Hiro marker).
+  </script>
+</body>
+</html>

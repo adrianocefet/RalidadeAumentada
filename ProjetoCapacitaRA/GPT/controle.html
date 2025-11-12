@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controlador Virtual</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --ink: #e6eefb;
+      --muted: #9fb2d1;
+      --accent: #00e5ff;
+      --ok: #34d399;
+      --bad: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(1200px 600px at 50% -10%, rgba(0,229,255,0.10), transparent 60%),
+                  radial-gradient(1000px 500px at 100% 100%, rgba(0,229,255,0.05), transparent 60%),
+                  var(--bg);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      padding: 18px;
+    }
+    header { display: flex; align-items: center; justify-content: space-between; }
+    .status { display: inline-flex; align-items: center; gap: 8px; font-size: .95rem; color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--bad); box-shadow: 0 0 10px rgba(239,68,68,.6); }
+    .dot.ok { background: var(--ok); box-shadow: 0 0 10px rgba(52,211,153,.6); }
+    .card {
+      padding: 16px; border: 1px solid rgba(255,255,255,.08); border-radius: 14px;
+      background: rgba(255,255,255,.03); backdrop-filter: blur(6px);
+    }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
+    .grid .val { font-size: 1.4rem; font-weight: 700; }
+    button.primary {
+      appearance: none; border: 0; cursor: pointer; width: 100%;
+      padding: 16px; border-radius: 14px; font-weight: 700; letter-spacing: .3px;
+      color: #00131a; background: var(--accent);
+      box-shadow: 0 12px 28px rgba(0,229,255,.35), inset 0 -6px 20px rgba(0,0,0,.25);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    button.primary:active { transform: translateY(1px) scale(.995); filter: brightness(.95); }
+    .hint { color: var(--muted); font-size: .92rem; }
+    footer { color: var(--muted); font-size: .85rem; text-align: center; opacity: .9; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2 style="margin:0;font-size:1.1rem">Controlador Virtual</h2>
+    <div class="status"><span id="wsDot" class="dot"></span><span id="wsText">WebSocket desconectado</span></div>
+  </header>
+
+  <section class="card">
+    <div class="grid">
+      <div>
+        <div class="val" id="alpha">0</div>
+        <div class="hint">alpha° (z)</div>
+      </div>
+      <div>
+        <div class="val" id="beta">0</div>
+        <div class="hint">beta° (x)</div>
+      </div>
+      <div>
+        <div class="val" id="gamma">0</div>
+        <div class="hint">gamma° (y)</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <button id="btnAction" class="primary">Acionar animação</button>
+    <p class="hint" id="permHint" style="margin-top:10px">Dica: toque em “Acionar animação” para autorizar os sensores do aparelho, se necessário.</p>
+  </section>
+
+  <footer>Transmitindo rotação do dispositivo e evento de ação para ws://localhost:8080</footer>
+
+  <script>
+    // ===========================
+    // Configuração do WebSocket
+    // ===========================
+    const WS_URL = 'ws://localhost:8080'; // Altere se o servidor WebSocket estiver em outro host/porta
+    let ws;
+    let wsReady = false;
+
+    const wsDot = document.getElementById('wsDot');
+    const wsText = document.getElementById('wsText');
+
+    function connectWS() {
+      try {
+        ws = new WebSocket(WS_URL);
+      } catch (e) {
+        console.error('Falha ao criar WebSocket', e);
+        return;
+      }
+      ws.addEventListener('open', () => {
+        wsReady = true;
+        wsDot.classList.add('ok');
+        wsText.textContent = 'WebSocket conectado';
+      });
+      ws.addEventListener('close', () => {
+        wsReady = false;
+        wsDot.classList.remove('ok');
+        wsText.textContent = 'WebSocket desconectado';
+        setTimeout(connectWS, 1000); // tentativa simples de reconexão
+      });
+      ws.addEventListener('error', () => {
+        wsReady = false;
+        wsDot.classList.remove('ok');
+        wsText.textContent = 'Erro no WebSocket';
+      });
+    }
+    connectWS();
+
+    // ==========================================
+    // Leitura dos sensores e envio contínuo
+    // ==========================================
+    // Como o controle envia os dados:
+    // 1) Capturamos o evento DeviceOrientationEvent do navegador (alpha, beta, gamma em graus)
+    // 2) A cada intervalo (50 ms), empacotamos em JSON e enviamos via WebSocket
+
+    let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
+    let streaming = false;
+
+    function onOrientation(event) {
+      // Normaliza os valores, garantindo números finitos
+      latestOrientation.alpha = Number.isFinite(event.alpha) ? event.alpha : 0;   // rotação em torno do eixo z
+      latestOrientation.beta  = Number.isFinite(event.beta)  ? event.beta  : 0;   // rotação em torno do eixo x
+      latestOrientation.gamma = Number.isFinite(event.gamma) ? event.gamma : 0;   // rotação em torno do eixo y
+
+      // Atualiza UI
+      document.getElementById('alpha').textContent = latestOrientation.alpha.toFixed(0);
+      document.getElementById('beta').textContent  = latestOrientation.beta.toFixed(0);
+      document.getElementById('gamma').textContent = latestOrientation.gamma.toFixed(0);
+    }
+
+    async function ensureSensorPermission() {
+      // iOS requer chamada de permissões sob gesto do usuário
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const state = await DeviceOrientationEvent.requestPermission();
+          if (state !== 'granted') {
+            alert('Permita o acesso aos sensores para transmitir a rotação.');
+            return false;
+          }
+        }
+        return true;
+      } catch (e) {
+        console.warn('Permissão de sensor não pôde ser verificada', e);
+        return true; // tentar mesmo assim em navegadores que não exigem API
+      }
+    }
+
+    function startStreaming() {
+      if (streaming) return;
+      window.addEventListener('deviceorientation', onOrientation, true);
+      // Envio a 20 Hz para não saturar a rede
+      setInterval(() => {
+        if (!wsReady) return;
+        const payload = {
+          type: 'orientation',
+          alpha: latestOrientation.alpha,
+          beta: latestOrientation.beta,
+          gamma: latestOrientation.gamma,
+          t: Date.now()
+        };
+        try { ws.send(JSON.stringify(payload)); } catch(e) {}
+      }, 50);
+      streaming = true;
+      document.getElementById('permHint').textContent = 'Sensores ativos. Movimente o telefone para controlar o avião.';
+    }
+
+    document.getElementById('btnAction').addEventListener('click', async () => {
+      const ok = await ensureSensorPermission();
+      if (ok) startStreaming();
+      if (wsReady) {
+        // Envia um sinal de ação para disparar animação no displayAR.html
+        try { ws.send(JSON.stringify({ type: 'action', t: Date.now() })); } catch(e) {}
+      }
+    });
+  </script>
+</body>
+</html>

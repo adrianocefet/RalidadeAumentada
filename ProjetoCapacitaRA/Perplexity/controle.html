@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Controlador Virtual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {background: #121b2b; color:#fff; font-family:sans-serif; display: flex; height:100vh; align-items:center; justify-content:center;}
+    .painel {background: rgba(30,36,48,0.85); padding:28px; border-radius:18px; box-shadow:0 6px 24px #000a;}
+    h2 {color: #64f4ac; font-family:'Orbitron',sans-serif;}
+    #status {margin:12px 0; color:#8fffc2;}
+    #rotação {font-size:1.1em; margin:8px 0;}
+    .botaoAção {padding:16px 32px; background:#222c4f; color:#8fffc2;border:1px solid #31d2b0; border-radius:12px; cursor:pointer; transition:all 0.2s;}
+    .botaoAção:hover {background:#31d2b0;color:#222c4f;}
+  </style>
+  <link href="https://fonts.googleapis.com/css?family=Orbitron:700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="painel">
+    <h2>Controlador Virtual</h2>
+    <div id="status">Conectando ao servidor WebSocket...</div>
+    <div id="rotação">Alpha: 0 | Beta: 0 | Gamma: 0</div>
+    <button class="botaoAção" onclick="enviarAcao()">Executar Ação no Avião</button>
+  </div>
+  <script>
+    // Conectando ao WebSocket local
+    const ws = new WebSocket('ws://localhost:8080');
+
+    ws.onopen = () => {
+      document.getElementById('status').textContent = 'Conectado ao WebSocket!';
+    };
+    ws.onerror = () => {
+      document.getElementById('status').textContent = 'Erro ao conectar WebSocket!';
+    };
+
+    // Função para enviar rotação
+    function enviarRotacao(alpha, beta, gamma) {
+      // Envia objeto com tipo 'rotacao'
+      ws.send(JSON.stringify({
+        tipo: 'rotacao',
+        alpha: alpha,
+        beta: beta,
+        gamma: gamma
+      }));
+    }
+
+    // Evento para capturar rotação do dispositivo
+    window.addEventListener('deviceorientation', function(event) {
+      if (ws.readyState === WebSocket.OPEN) {
+        enviarRotacao(event.alpha, event.beta, event.gamma);
+      }
+      // Atualiza no painel
+      document.getElementById('rotação').textContent =
+        `Alpha: ${event.alpha?.toFixed(1)} | Beta: ${event.beta?.toFixed(1)} | Gamma: ${event.gamma?.toFixed(1)}`;
+    });
+
+    // Botão: Envia ação para displayAR.html
+    function enviarAcao() {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ tipo: 'acao', acao: 'animar' }));
+      }
+    }
+
+    // Comentários:
+    // - As rotações são enviadas em tempo real assim que capturadas via sensors do smartphone.
+    // - O botão envia um tipo de mensagem 'acao' para executar animação no displayAR.html remotamente.
+    // - Só é necessário alterar 'ws://localhost:8080' caso o endereço do servidor mude.
+  </script>
+</body>
+</html>
