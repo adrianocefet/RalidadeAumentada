@@ -1,0 +1,529 @@
+<!-- =========================
+ File: index.html
+========================= -->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sistema de Realidade Aumentada</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg1: #0f0c29; /* roxo escuro */
+      --bg2: #302b63; /* roxo médio */
+      --bg3: #24243e; /* roxo azulado */
+      --accent: #00e5ff;
+      --accent-2: #7c4dff;
+      --text: #e9eefb;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: "Poppins", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: linear-gradient(120deg, var(--bg1), var(--bg2), var(--bg3));
+      background-size: 180% 180%;
+      animation: gradientShift 12s ease infinite;
+      display: grid;
+      place-items: center;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .wrap {
+      width: min(100%, 900px);
+      padding: 32px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    p.lead {
+      margin: 0 0 28px;
+      color: #cbd5e1;
+    }
+    .panel {
+      position: relative;
+      margin-inline: auto;
+      padding: 28px;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35), inset 0 0 30px rgba(124,77,255,0.12);
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 18px;
+      margin-top: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 16px 20px;
+      background: radial-gradient(120% 120% at 50% 0%, rgba(0,229,255,0.24), rgba(124,77,255,0.12) 40%, rgba(255,255,255,0.04) 70%);
+      border: 1px solid rgba(0,229,255,0.45);
+      border-radius: 14px;
+      color: var(--text);
+      text-decoration: none;
+      font-weight: 600;
+      letter-spacing: .4px;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      box-shadow: 0 10px 24px rgba(0,229,255,0.18), inset 0 0 24px rgba(0,229,255,0.12);
+    }
+    .btn.secondary {
+      border-color: rgba(124,77,255,0.55);
+      box-shadow: 0 10px 24px rgba(124,77,255,0.18), inset 0 0 24px rgba(124,77,255,0.14);
+      background: radial-gradient(120% 120% at 50% 0%, rgba(124,77,255,0.26), rgba(0,229,255,0.10) 40%, rgba(255,255,255,0.03) 70%);
+    }
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0,229,255,0.28), 0 0 30px rgba(0,229,255,0.22) inset;
+      border-color: var(--accent);
+    }
+    .btn.secondary:hover {
+      box-shadow: 0 16px 40px rgba(124,77,255,0.28), 0 0 30px rgba(124,77,255,0.22) inset;
+      border-color: var(--accent-2);
+    }
+    .hint {
+      margin-top: 20px;
+      font-size: .9rem;
+      color: #9fb2d1;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="panel">
+      <h1>Sistema de Realidade Aumentada</h1>
+      <p class="lead">Escolha um módulo para iniciar</p>
+      <div class="actions">
+        <a class="btn" href="displayAR.html">Display AR</a>
+        <a class="btn secondary" href="controle.html">Controlador Virtual</a>
+      </div>
+      <p class="hint">Sugestão: abra o Display no computador com câmera e o Controlador no smartphone.</p>
+    </div>
+  </main>
+</body>
+</html>
+
+
+<!-- =========================
+ File: controle.html
+========================= -->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controlador Virtual</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --ink: #e6eefb;
+      --muted: #9fb2d1;
+      --accent: #00e5ff;
+      --ok: #34d399;
+      --bad: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--ink);
+      background: radial-gradient(1200px 600px at 50% -10%, rgba(0,229,255,0.10), transparent 60%),
+                  radial-gradient(1000px 500px at 100% 100%, rgba(0,229,255,0.05), transparent 60%),
+                  var(--bg);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      padding: 18px;
+    }
+    header { display: flex; align-items: center; justify-content: space-between; }
+    .status { display: inline-flex; align-items: center; gap: 8px; font-size: .95rem; color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 999px; background: var(--bad); box-shadow: 0 0 10px rgba(239,68,68,.6); }
+    .dot.ok { background: var(--ok); box-shadow: 0 0 10px rgba(52,211,153,.6); }
+    .card {
+      padding: 16px; border: 1px solid rgba(255,255,255,.08); border-radius: 14px;
+      background: rgba(255,255,255,.03); backdrop-filter: blur(6px);
+    }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
+    .grid .val { font-size: 1.4rem; font-weight: 700; }
+    button.primary {
+      appearance: none; border: 0; cursor: pointer; width: 100%;
+      padding: 16px; border-radius: 14px; font-weight: 700; letter-spacing: .3px;
+      color: #00131a; background: var(--accent);
+      box-shadow: 0 12px 28px rgba(0,229,255,.35), inset 0 -6px 20px rgba(0,0,0,.25);
+      transition: transform .12s ease, filter .12s ease;
+    }
+    button.primary:active { transform: translateY(1px) scale(.995); filter: brightness(.95); }
+    .hint { color: var(--muted); font-size: .92rem; }
+    footer { color: var(--muted); font-size: .85rem; text-align: center; opacity: .9; }
+  </style>
+</head>
+<body>
+  <header>
+    <h2 style="margin:0;font-size:1.1rem">Controlador Virtual</h2>
+    <div class="status"><span id="wsDot" class="dot"></span><span id="wsText">WebSocket desconectado</span></div>
+  </header>
+
+  <section class="card">
+    <div class="grid">
+      <div>
+        <div class="val" id="alpha">0</div>
+        <div class="hint">alpha° (z)</div>
+      </div>
+      <div>
+        <div class="val" id="beta">0</div>
+        <div class="hint">beta° (x)</div>
+      </div>
+      <div>
+        <div class="val" id="gamma">0</div>
+        <div class="hint">gamma° (y)</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <button id="btnAction" class="primary">Acionar animação</button>
+    <p class="hint" id="permHint" style="margin-top:10px">Dica: toque em “Acionar animação” para autorizar os sensores do aparelho, se necessário.</p>
+  </section>
+
+  <footer>Transmitindo rotação do dispositivo e evento de ação para ws://localhost:8080</footer>
+
+  <script>
+    // ===========================
+    // Configuração do WebSocket
+    // ===========================
+    const WS_URL = 'ws://localhost:8080'; // Altere se o servidor WebSocket estiver em outro host/porta
+    let ws;
+    let wsReady = false;
+
+    const wsDot = document.getElementById('wsDot');
+    const wsText = document.getElementById('wsText');
+
+    function connectWS() {
+      try {
+        ws = new WebSocket(WS_URL);
+      } catch (e) {
+        console.error('Falha ao criar WebSocket', e);
+        return;
+      }
+      ws.addEventListener('open', () => {
+        wsReady = true;
+        wsDot.classList.add('ok');
+        wsText.textContent = 'WebSocket conectado';
+      });
+      ws.addEventListener('close', () => {
+        wsReady = false;
+        wsDot.classList.remove('ok');
+        wsText.textContent = 'WebSocket desconectado';
+        setTimeout(connectWS, 1000); // tentativa simples de reconexão
+      });
+      ws.addEventListener('error', () => {
+        wsReady = false;
+        wsDot.classList.remove('ok');
+        wsText.textContent = 'Erro no WebSocket';
+      });
+    }
+    connectWS();
+
+    // ==========================================
+    // Leitura dos sensores e envio contínuo
+    // ==========================================
+    // Como o controle envia os dados:
+    // 1) Capturamos o evento DeviceOrientationEvent do navegador (alpha, beta, gamma em graus)
+    // 2) A cada intervalo (50 ms), empacotamos em JSON e enviamos via WebSocket
+
+    let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
+    let streaming = false;
+
+    function onOrientation(event) {
+      // Normaliza os valores, garantindo números finitos
+      latestOrientation.alpha = Number.isFinite(event.alpha) ? event.alpha : 0;   // rotação em torno do eixo z
+      latestOrientation.beta  = Number.isFinite(event.beta)  ? event.beta  : 0;   // rotação em torno do eixo x
+      latestOrientation.gamma = Number.isFinite(event.gamma) ? event.gamma : 0;   // rotação em torno do eixo y
+
+      // Atualiza UI
+      document.getElementById('alpha').textContent = latestOrientation.alpha.toFixed(0);
+      document.getElementById('beta').textContent  = latestOrientation.beta.toFixed(0);
+      document.getElementById('gamma').textContent = latestOrientation.gamma.toFixed(0);
+    }
+
+    async function ensureSensorPermission() {
+      // iOS requer chamada de permissões sob gesto do usuário
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          const state = await DeviceOrientationEvent.requestPermission();
+          if (state !== 'granted') {
+            alert('Permita o acesso aos sensores para transmitir a rotação.');
+            return false;
+          }
+        }
+        return true;
+      } catch (e) {
+        console.warn('Permissão de sensor não pôde ser verificada', e);
+        return true; // tentar mesmo assim em navegadores que não exigem API
+      }
+    }
+
+    function startStreaming() {
+      if (streaming) return;
+      window.addEventListener('deviceorientation', onOrientation, true);
+      // Envio a 20 Hz para não saturar a rede
+      setInterval(() => {
+        if (!wsReady) return;
+        const payload = {
+          type: 'orientation',
+          alpha: latestOrientation.alpha,
+          beta: latestOrientation.beta,
+          gamma: latestOrientation.gamma,
+          t: Date.now()
+        };
+        try { ws.send(JSON.stringify(payload)); } catch(e) {}
+      }, 50);
+      streaming = true;
+      document.getElementById('permHint').textContent = 'Sensores ativos. Movimente o telefone para controlar o avião.';
+    }
+
+    document.getElementById('btnAction').addEventListener('click', async () => {
+      const ok = await ensureSensorPermission();
+      if (ok) startStreaming();
+      if (wsReady) {
+        // Envia um sinal de ação para disparar animação no displayAR.html
+        try { ws.send(JSON.stringify({ type: 'action', t: Date.now() })); } catch(e) {}
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+<!-- =========================
+ File: displayAR.html
+========================= -->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Display AR</title>
+  <!-- A-Frame e AR.js. Versões estáveis e leves para AR com marcador "hiro". -->
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    .hud {
+      position: fixed; inset: 12px auto auto 12px; z-index: 10; color: #e6eefb;
+      background: rgba(0,0,0,.35); backdrop-filter: blur(6px); border-radius: 10px;
+      padding: 8px 10px; font: 500 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    .hud b { color: #00e5ff; }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div>WS: <b id="wsState">conectando…</b></div>
+    <div>Rotação alvo: <span id="dbgRot">0,0,0</span></div>
+  </div>
+
+  <!-- Cena AR com marcador "hiro". Use uma impressão do marcador para ancorar o modelo. -->
+  <a-scene
+    vr-mode-ui="enabled: false"
+    renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true; logarithmicDepthBuffer: true"
+    embedded
+    arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false">
+
+    <!-- Onde alterar o modelo 3D: substitua o caminho abaixo por outro .glb/.gltf local -->
+    <a-assets>
+      <a-asset-item id="planeModel" src="./aviao_low_poly.glb" crossorigin="anonymous"></a-asset-item>
+    </a-assets>
+
+    <!-- Luzes para destacar o modelo -->
+    <a-entity light="type: hemisphere; color: #ffffff; groundColor: #666666; intensity: 1.0" position="0 2 0"></a-entity>
+    <a-entity light="type: directional; intensity: 0.6" position="1 2 0"></a-entity>
+
+    <!-- Marcador padrão do AR.js. O modelo é filho do marcador, mantendo o tracking. -->
+    <a-marker preset="hiro">
+      <a-entity id="plane"
+                gltf-model="#planeModel"
+                position="0 0 0"
+                rotation="0 0 0"
+                scale="0.6 0.6 0.6"
+                animation-mixer="clip: *; loop: once; timeScale: 0; clampWhenFinished: true">
+      </a-entity>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    // ====================================================
+    // Recebimento de dados e aplicação no modelo 3D
+    // ====================================================
+    // Como o display recebe e aplica as rotações:
+    // - Conectamos ao mesmo WebSocket do controle
+    // - Mensagens do tipo { type: 'orientation', alpha, beta, gamma } atualizam o alvo de rotação
+    // - Suavizamos a transição e aplicamos no atributo rotation do <a-entity id="plane">
+
+    const WS_URL = 'ws://localhost:8080';
+    const wsStateEl = document.getElementById('wsState');
+    const dbgRot = document.getElementById('dbgRot');
+    const planeEl = document.getElementById('plane');
+
+    let targetRot = { x: 0, y: 0, z: 0 };
+    let haveTarget = false;
+
+    function connectWS() {
+      const ws = new WebSocket(WS_URL);
+      ws.onopen = () => wsStateEl.textContent = 'conectado';
+      ws.onclose = () => { wsStateEl.textContent = 'desconectado'; setTimeout(connectWS, 1000); };
+      ws.onerror = () => wsStateEl.textContent = 'erro';
+      ws.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          if (data.type === 'orientation') {
+            // Mapeia alpha->y, beta->x, gamma->z para o sistema de rotação do A-Frame (graus)
+            targetRot = { x: data.beta || 0, y: data.alpha || 0, z: data.gamma || 0 };
+            haveTarget = true;
+            dbgRot.textContent = `${targetRot.x.toFixed(0)}, ${targetRot.y.toFixed(0)}, ${targetRot.z.toFixed(0)}`;
+          } else if (data.type === 'action') {
+            triggerModelAction();
+          }
+        } catch (e) { /* ignora pacotes não-JSON */ }
+      };
+    }
+    connectWS();
+
+    // Suavizador: aproxima rotação atual do alvo a cada frame
+    function smoothToTarget() {
+      if (haveTarget && planeEl && planeEl.object3D) {
+        const cur = planeEl.getAttribute('rotation');
+        const k = 0.25; // fator de suavização
+        const nx = cur.x + (targetRot.x - cur.x) * k;
+        const ny = cur.y + (targetRot.y - cur.y) * k;
+        const nz = cur.z + (targetRot.z - cur.z) * k;
+        planeEl.setAttribute('rotation', { x: nx, y: ny, z: nz });
+      }
+      requestAnimationFrame(smoothToTarget);
+    }
+    requestAnimationFrame(smoothToTarget);
+
+    // Disparo de animação predefinida no .glb (se houver clips)
+    function triggerModelAction() {
+      // Tenta reinicializar animation-mixer tocando todos os clips uma vez
+      try {
+        planeEl.removeAttribute('animation-mixer');
+        // Reaplica no próximo frame para garantir rebind
+        setTimeout(() => {
+          planeEl.setAttribute('animation-mixer', 'clip: *; loop: once; timeScale: 1; clampWhenFinished: true');
+        }, 0);
+      } catch (e) {}
+
+      // Fallback visual caso o modelo não tenha animação interna
+      // Um pequeno pulso de escala para indicar a ação
+      planeEl.setAttribute('animation__pulse', 'property: scale; to: 0.7 0.7 0.7; dir: alternate; dur: 180; loop: 2; easing: easeInOutSine');
+      setTimeout(() => planeEl.removeAttribute('animation__pulse'), 600);
+    }
+  </script>
+</body>
+</html>
+
+
+<!-- =========================
+ File: server.js  (opcional)
+========================= -->
+/*
+Servidor WebSocket mínimo para repassar mensagens entre o Controlador e o Display.
+Requisitos: Node.js 18+ e o pacote "ws".
+
+Como executar:
+  1) npm init -y
+  2) npm i ws
+  3) node server.js
+O servidor escutará em ws://localhost:8080
+*/
+
+// server.js
+import { WebSocketServer } from 'ws';
+
+const wss = new WebSocketServer({ port: 8080 });
+console.log('WebSocket server ouvindo em ws://localhost:8080');
+
+wss.on('connection', (ws) => {
+  console.log('Cliente conectado');
+  ws.on('message', (msg) => {
+    // Repassa a todos (broadcast)
+    for (const client of wss.clients) {
+      if (client.readyState === 1) { // WebSocket.OPEN
+        client.send(msg.toString());
+      }
+    }
+  });
+  ws.on('close', () => console.log('Cliente desconectado'));
+});
+
+<!-- =========================
+ File: server.py  (opcional em Python)
+========================= -->
+# Servidor WebSocket mínimo em Python para retransmitir mensagens entre clientes
+# Requisitos: Python 3.10+ e o pacote "websockets"
+# Instalação:  pip install websockets
+# Execução:    python server.py
+# O displayAR.html e o controle.html devem apontar para ws://localhost:8080
+
+import asyncio
+import os
+from websockets.server import serve
+
+CLIENTS = set()
+
+async def broadcast(message: str, sender=None):
+    to_remove = set()
+    for ws in CLIENTS:
+        try:
+            await ws.send(message)
+        except Exception:
+            to_remove.add(ws)
+    for ws in to_remove:
+        CLIENTS.discard(ws)
+
+async def handler(ws):
+    CLIENTS.add(ws)
+    try:
+        async for msg in ws:
+            # Repassa qualquer payload recebido (texto) para todos os conectados
+            await broadcast(msg, sender=ws)
+    except Exception:
+        pass
+    finally:
+        CLIENTS.discard(ws)
+
+async def main():
+    host = os.getenv("WS_HOST", "0.0.0.0")
+    port = int(os.getenv("WS_PORT", "8080"))
+    # origins=None aceita qualquer origem. Ajuste conforme necessidade de segurança.
+    async with serve(handler, host, port, ping_interval=20, ping_timeout=20, origins=None):
+        print(f"WebSocket server ouvindo em ws://{host}:{port}")
+        await asyncio.Future()  # roda indefinidamente
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Encerrado pelo usuário")
+
