@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Display AR - MQTT</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <!-- A-Frame e Extras -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+    
+    <!-- AR.js -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    
+    <!-- Biblioteca Paho MQTT -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+</head>
+<body style="margin: 0; overflow: hidden;">
+
+    <!-- Cena AR -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        
+        <a-assets>
+            <!-- 
+                IMPORTANTE: Para o projeto real, substitua o 'src' abaixo pelo seu arquivo 'aviao_low_poly.glb'
+                Exemplo: src="aviao_low_poly.glb"
+                Estamos usando um modelo online para demonstração imediata.
+            -->
+            <a-asset-item id="model-asset" src="https://cdn.glade.io/storage/models/Astronaut/Astronaut.glb"></a-asset-item>
+        </a-assets>
+
+        <!-- Marcador Hiro -->
+        <a-marker preset="hiro">
+            <!-- Objeto 3D Controlável -->
+            <a-entity 
+                id="controlled-object"
+                gltf-model="#model-asset" 
+                scale="0.2 0.2 0.2" 
+                rotation="-90 0 0"
+                animation-mixer="clip: idle; loop: repeat;">
+            </a-entity>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- Overlay de Status -->
+    <div style="position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.5); color: white; padding: 10px; font-family: sans-serif; border-radius: 5px; z-index: 999;">
+        MQTT Status: <span id="mqtt-status" style="color: yellow;">Conectando...</span>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO MQTT (Deve ser igual ao controle) ---
+        const BROKER = "broker.hivemq.com";
+        const PORT = 8000;
+        const TOPIC = "projetoAR/controle/dados_v1";
+
+        let client;
+        const statusEl = document.getElementById('mqtt-status');
+        const modelEntity = document.getElementById('controlled-object');
+
+        function connectMQTT() {
+            const clientId = "webxr_display_" + Math.random().toString(16).substr(2, 8);
+            client = new Paho.MQTT.Client(BROKER, PORT, clientId);
+
+            client.onConnectionLost = onConnectionLost;
+            client.onMessageArrived = onMessageArrived;
+
+            client.connect({
+                onSuccess: onConnect,
+                onFailure: (err) => {
+                    statusEl.innerText = "Erro ao conectar";
+                    console.error(err);
+                    setTimeout(connectMQTT, 5000); // Tenta reconectar
+                }
+            });
+        }
+
+        function onConnect() {
+            console.log("Display Conectado ao MQTT");
+            statusEl.innerText = "Online | Aguardando Dados";
+            statusEl.style.color = "#00ff00";
+            
+            // Inscreve-se no tópico para receber mensagens
+            client.subscribe(TOPIC);
+        }
+
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("Conexão perdida: " + responseObject.errorMessage);
+                statusEl.innerText = "Desconectado";
+                statusEl.style.color = "red";
+            }
+        }
+
+        // --- RECEBIMENTO E APLICAÇÃO DOS DADOS ---
+        function onMessageArrived(message) {
+            try {
+                const data = JSON.parse(message.payloadString);
+
+                if (data.type === 'rotate') {
+                    applyRotation(data.payload);
+                } else if (data.type === 'action') {
+                    triggerAction();
+                }
+            } catch (e) {
+                console.error("Erro ao processar mensagem", e);
+            }
+        }
+
+        function applyRotation(rotData) {
+            // A-Frame usa graus (X, Y, Z)
+            // Mapeamento de DeviceOrientation para A-Frame:
+            // Beta (Frente/Trás) -> Eixo X
+            // Alpha (Bússola) -> Eixo Y
+            // Gamma (Esquerda/Direita) -> Eixo Z
+            
+            // Rotação base para corrigir a orientação do modelo (ex: Astronauta vem deitado)
+            const baseRotationX = -90; 
+
+            // Suavização simples ou aplicação direta
+            const x = baseRotationX + rotData.beta;
+            const y = rotData.alpha; 
+            const z = -rotData.gamma; // Inverte gamma para espelhar o movimento natural
+
+            modelEntity.setAttribute('rotation', `${x} ${y} ${z}`);
+        }
+
+        function triggerAction() {
+            statusEl.innerText = "AÇÃO RECEBIDA!";
+            
+            // Executa animação
+            // Toca a animação "Run" ou "Wave" (depende do modelo). 
+            // 'clip: *' tenta tocar a primeira animação diferente.
+            modelEntity.setAttribute('animation-mixer', {
+                clip: '*',
+                loop: 'once',
+                timeScale: 1.5
+            });
+
+            // Retorna para idle após 2 segundos
+            setTimeout(() => {
+                modelEntity.setAttribute('animation-mixer', {
+                    clip: 'idle',
+                    loop: 'repeat',
+                    timeScale: 1
+                });
+                statusEl.innerText = "Online | Aguardando Dados";
+            }, 2000);
+        }
+
+        // Inicia
+        connectMQTT();
+
+    </script>
+</body>
+</html>
