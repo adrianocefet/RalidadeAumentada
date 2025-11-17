@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Display AR - MQTT</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    
+    <!-- A-Frame e Extras (para animação) -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+    
+    <!-- AR.js -->
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    
+    <!-- Biblioteca Paho MQTT (para conexão) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+</head>
+<body style="margin: 0; overflow: hidden;">
+
+    <!-- Cena AR -->
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        
+        <a-assets>
+            <!-- 
+              ===============================================================
+              IMPORTANTE: Troque o 'src' abaixo pelo seu 'aviao_low_poly.glb'
+              Exemplo: src="aviao_low_poly.glb"
+              Estou usando um astronauta como placeholder.
+              ===============================================================
+            -->
+            <a-asset-item id="model-asset" src="aviao_low_poly.glb"></a-asset-item>
+        </a-assets>
+
+        <!-- Marcador Hiro -->
+        <a-marker preset="hiro">
+            <!-- 
+              Esta é a entidade 3D que será controlada.
+              'id="controlled-object"' é essencial para o JavaScript encontrá-la.
+            -->
+            <a-entity 
+                id="controlled-object"
+                gltf-model="#model-asset" 
+                scale="0.2 0.2 0.2" 
+                rotation="-90 0 0" <!-- Rotação inicial para corrigir a orientação -->
+                animation-mixer="clip: idle; loop: repeat;">
+            </a-entity>
+        </a-marker>
+
+        <!-- Câmera AR.js padrão -->
+        <a-entity camera></a-entity>
+    </a-scene>
+
+    <!-- Overlay de Status para depuração -->
+    <div style="position: fixed; top: 10px; left: 10px; background: rgba(0,0,0,0.5); color: white; padding: 10px; font-family: sans-serif; border-radius: 5px; z-index: 999;">
+        Broker Status: <span id="mqtt-status" style="color: yellow;">Conectando...</span>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO MQTT ---
+        const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
+        const TOPIC = "projetoAR/controle/dados";
+
+        let client;
+        const statusEl = document.getElementById('mqtt-status');
+        const modelEntity = document.getElementById('controlled-object');
+
+        function connectMQTT() {
+            statusEl.innerText = "Conectando...";
+            const clientId = "webxr_display_" + Math.random().toString(16).substr(2, 8);
+            
+            // O Paho.MQTT.Client aceita a URL completa
+            client = new Paho.MQTT.Client(BROKER_URL, clientId);
+
+            client.onConnectionLost = onConnectionLost;
+            client.onMessageArrived = onMessageArrived;
+
+            client.connect({
+                onSuccess: onConnect,
+                onFailure: (err) => {
+                    statusEl.innerText = "Erro ao conectar";
+                    statusEl.style.color = "red";
+                    console.error("Falha na conexão MQTT:", err);
+                    setTimeout(connectMQTT, 5000); // Tenta reconectar após 5s
+                },
+                useSSL: true // Obrigatório para 'wss://'
+            });
+        }
+
+        function onConnect() {
+            console.log("Display Conectado ao MQTT!");
+            statusEl.innerText = "Online | Aguardando Dados";
+            statusEl.style.color = "#00ff00";
+            
+            // Inscreve-se no tópico para receber as mensagens
+            client.subscribe(TOPIC);
+            console.log("Inscrito no tópico:", TOPIC);
+        }
+
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0) {
+                console.log("Conexão perdida: " + responseObject.errorMessage);
+                statusEl.innerText = "Desconectado";
+                statusEl.style.color = "red";
+                // Tenta reconectar
+                setTimeout(connectMQTT, 5000);
+            }
+        }
+
+        // --- RECEBIMENTO E APLICAÇÃO DOS DADOS ---
+        function onMessageArrived(message) {
+            try {
+                // Converte a mensagem recebida em um objeto JSON
+                const data = JSON.parse(message.payloadString);
+
+                // Verifica o tipo de mensagem
+                if (data.type === 'rotate') {
+                    // Se for 'rotate', chama a função para aplicar o ângulo
+                    applyRotation(data.payload);
+                } else if (data.type === 'action') {
+                    // Se for 'action', chama a função para a animação
+                    triggerAction();
+                }
+            } catch (e) {
+                console.error("Erro ao processar mensagem MQTT:", e);
+            }
+        }
+
+        /**
+         * Aplica a rotação recebida do controlador ao modelo 3D.
+         * @param {object} rotData - Objeto contendo {alpha, beta, gamma}
+         */
+        function applyRotation(rotData) {
+            if (!modelEntity) return;
+
+            // Rotação base para corrigir a orientação inicial do modelo
+            // (Muitos modelos vêm "deitados", -90 no X os "levanta")
+            const baseRotationX = -90; 
+
+            // Mapeamento de DeviceOrientation para A-Frame (X, Y, Z)
+            // Beta (Frente/Trás) -> Eixo X (Pitch)
+            // Alpha (Bússola/Yaw) -> Eixo Y (Yaw)
+            // Gamma (Esquerda/Direita) -> Eixo Z (Roll)
+            
+            const x = baseRotationX + rotData.beta;
+            const y = rotData.alpha; 
+            const z = -rotData.gamma; // Invertemos o gamma para um controle mais intuitivo
+
+            // Define o atributo 'rotation' no A-Frame
+            modelEntity.setAttribute('rotation', `${x} ${y} ${z}`);
+        }
+
+        /**
+         * Dispara a animação de "ação" no modelo 3D.
+         */
+        function triggerAction() {
+            if (!modelEntity) return;
+            
+            console.log("Ação recebida!");
+            statusEl.innerText = "AÇÃO!";
+
+            // Toca a primeira animação disponível ('*') uma vez
+            modelEntity.setAttribute('animation-mixer', {
+                clip: '*',
+                loop: 'once',
+                clampWhenFinished: true
+            });
+
+            // Retorna à animação 'idle' após 2 segundos
+            setTimeout(() => {
+                modelEntity.setAttribute('animation-mixer', {
+                    clip: 'idle',
+                    loop: 'repeat'
+                });
+                statusEl.innerText = "Online | Aguardando Dados";
+            }, 2000);
+        }
+
+        // Inicia a conexão MQTT assim que a página carregar
+        connectMQTT();
+
+    </script>
+</body>
+</html>

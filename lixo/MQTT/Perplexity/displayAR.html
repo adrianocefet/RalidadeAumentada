@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Display AR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ar.js@3.3.2/aframe/build/aframe-ar.min.js"></script>
+  <style>
+    body {margin:0; background:#000;}
+    h2 {position:absolute; z-index:10;top:10px;left:0;right:0;text-align:center;color:#64f4ac;font-family:'Orbitron',sans-serif;}
+  </style>
+</head>
+<body>
+  <h2>Display AR</h2>
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    renderer="colorManagement: true;"
+  >
+    <a-assets>
+      <!-- Troque o arquivo abaixo para mudar o modelo 3D -->
+      <a-asset-item id="aviao-modelo" src="aviao_low_poly.glb"></a-asset-item>
+    </a-assets>
+    <a-marker preset="hiro">
+      <a-entity
+        id="aviao"
+        gltf-model="#aviao-modelo"
+        scale="1.5 1.5 1.5"
+        animation__acao="property: rotation; to: 0 180 0; dur: 600; dir: alternate; loop: false; startEvents: açãoAvião;"
+      ></a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+  <!-- Biblioteca Paho MQTT -->
+  <script src="https://unpkg.com/paho-mqtt/mqttws31.min.js"></script>
+  <script>
+    // Setup MQTT
+    const clientID = "display-" + Math.random().toString(16).substr(2, 8);
+    const client = new Paho.MQTT.Client("test.mosquitto.org", 8081, clientID);
+
+    client.onConnectionLost = () => {
+      console.log("Desconectado do MQTT!");
+    };
+
+    client.onMessageArrived = function(message) {
+      // Recebe mensagem do controle via MQTT
+      const dados = JSON.parse(message.payloadString);
+      const aviao = document.getElementById('aviao');
+      // Aplicando rotação recebida
+      if (dados.tipo === 'rotacao' && aviao) {
+        aviao.setAttribute('rotation',
+          `${dados.beta?.toFixed(2) || 0} ${dados.gamma?.toFixed(2) || 0} ${dados.alpha?.toFixed(2) || 0}`);
+      }
+      // Sinal de ação: dispara animação
+      if (dados.tipo === 'acao' && dados.acao === 'animar' && aviao) {
+        aviao.emit('açãoAvião');
+      }
+    };
+
+    client.connect({
+      onSuccess: () => {
+        client.subscribe("projetoAR/controle");
+      }
+    });
+
+    // Comentários:
+    // - O display recebe dados do tópico MQTT "projetoAR/controle".
+    // - Os parâmetros de rotação são aplicados diretamente na entidade do avião AR.
+    // - O sinal 'acao' dispara animação predefinida configurada via animation__acao.
+    // - Para trocar o modelo 3D, altere o arquivo .glb no elemento <a-asset-item>.
+  </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+Modelo criado com base no curso do Gustavo Rosa: https://www.udemy.com/share/102foGAkYYdldaRHQ=/
+feito download a partir do site sketchfab https://skfb.ly/6Srus
+
+
+Como Usar o Sistema WebXR de Controle Remoto
+
+Este é um guia rápido para demonstrar o sistema de Realidade Aumentada (AR) com controle remoto hospedado em: https://ramqtt.netlify.app/
+O sistema usa dois dispositivos que se comunicam em tempo real pela internet (via broker MQTT): um serve como Controlador (seu celular) e o outro como Display de AR.
+Requisitos Essenciais
+
+Dois Dispositivos:
+Dispositivo 1 (Controlador): Um smartphone com giroscópio (praticamente todos os modernos).
+Dispositivo 2 (Display): Um segundo dispositivo com câmera (outro smartphone, um tablet ou um laptop).
+Marcador AR: Você precisará da imagem do marcador "Hiro". Aponte a câmera para a imagem abaixo ou imprima-a.
+
+Guia Passo a Passo
+Siga estas instruções para testar o sistema:
+
+Passo 1: Preparar os Dispositivos
+
+Em AMBOS os dispositivos, abra o navegador (Chrome, Safari, etc.) e acesse:
+https://ramqtt.netlify.app/
+Você verá a tela inicial com duas opções.
+
+Passo 2: Configurar o Dispositivo 1 (Controlador)
+No seu smartphone principal (que será o controle):
+Clique no botão "Controlador Virtual".
+Aguarde a página carregar. No centro, você verá um botão "INICIAR SISTEMA".
+Clique em "INICIAR SISTEMA".
+O navegador provavelmente pedirá permissão para acessar "Sensores de Movimento e Orientação". Você DEVE PERMITIR.
+O status no topo da tela deve mudar de "Desconectado" para "Online | Calibrado".
+Deixe este dispositivo de lado por um momento.
+
+Passo 3: Configurar o Dispositivo 2 (Display AR)
+
+No seu segundo dispositivo (tablet, laptop ou outro celular):
+Na tela inicial, clique no botão "Display AR".
+O navegador pedirá permissão para acessar a "Câmera". Você DEVE PERMITTIR.
+A câmera será ativada. Verifique o status no canto superior esquerdo. Ele deve mudar de "Conectando..." para "Online | Aguardando Dados".
+
+Passo 4: Executar a Experiência
+
+Aponte a câmera do Dispositivo 2 (Display AR) para o marcador "Hiro" (a imagem que você preparou no início).
+Um modelo 3D de um avião deve aparecer flutuando sobre o marcador.
+Agora, pegue o Dispositivo 1 (Controlador):
+Movimente o celular: Incline-o para frente, para trás, e gire-o.
+
+Observe o Dispositivo 2: O avião na tela de AR deve rotacionar em tempo real, espelhando os movimentos do seu celular!
+
+Pressione o botão "DISPARAR" no Controlador. O avião deve executar uma animação (girar a hélice).
+

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema de Realidade Aumentada</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #121B2B, #222C4F 70%);
+      animation: fundo 10s infinite alternate;
+    }
+    @keyframes fundo {
+      0% {background: linear-gradient(135deg, #121B2B, #222C4F 70%);}
+      100% {background: linear-gradient(135deg, #151a30, #0e1a2d 70%);}
+    }
+    .container {
+      text-align: center;
+      background: rgba(28, 36, 45, 0.85);
+      border-radius: 20px;
+      padding: 40px 32px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+    }
+    h1 {
+      color: #64f4ac;
+      margin-bottom: 32px;
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px #00ffc8;
+    }
+    .botao {
+      display: block;
+      width: 80%;
+      margin: 16px auto;
+      padding: 18px;
+      font-size: 1.15em;
+      font-family: 'Orbitron', sans-serif;
+      background: #232a36;
+      color: #64f4ac;
+      border: 2px solid #31d2b0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 12px #00686066;
+    }
+    .botao:hover {
+      background: #222C4F;
+      color: #fff;
+      border-color: #8fffc2;
+      box-shadow: 0 0 18px #00ffc877;
+      transform: scale(1.05);
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css?family=Orbitron:700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1>Sistema de Realidade Aumentada</h1>
+    <button class="botao" onclick="location.href='displayAR.html'">Display AR</button>
+    <button class="botao" onclick="location.href='controle.html'">Controlador Virtual</button>
+  </div>
+</body>
+</html>
