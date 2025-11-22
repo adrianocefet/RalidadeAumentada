@@ -11,6 +11,8 @@
     
     <!-- AR.js -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <!-- gestos-->
+    <script src="https://raw.githack.com/fcor/arjs-gestures/master/dist/gestures.js"></script>
     
     <!-- Biblioteca Paho MQTT (para conexão) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
@@ -18,7 +20,7 @@
 <body style="margin: 0; overflow: hidden;">
 
     <!-- Cena AR -->
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" gesture-detector>
         
         <a-assets>
             <a-asset-item id="model-asset" src="aviao_low_poly.glb"></a-asset-item>
@@ -30,11 +32,13 @@
               Esta é a entidade 3D que será controlada.
               'id="controlled-object"' é essencial para o JavaScript encontrá-la.
             -->
+	    <!-- Rotação inicial -90 0 0 é essencial para para corrigir a orientação -->
             <a-entity 
                 id="controlled-object"
                 gltf-model="#model-asset" 
                 scale="0.2 0.2 0.2" 
-                rotation="-90 0 0" <!-- Rotação inicial para corrigir a orientação -->
+                rotation="-90 0 0" 
+		gesture-handler="minScale: 0.1; maxScale: 2; panEnabled: true; pinchEnabled: true; rotateEnabled: true" 
                 animation-mixer="clip: idle; loop: repeat;">
             </a-entity>
         </a-marker>
